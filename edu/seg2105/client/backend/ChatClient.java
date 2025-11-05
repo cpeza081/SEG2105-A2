@@ -101,7 +101,7 @@ public class ChatClient extends AbstractClient
     @Override
     protected void connectionClosed() {
         clientUI.display("The server has shut down.");
-        System.exit(0);  // closes the client
+        quit();  // closes the client
     }
 
     /**
@@ -114,7 +114,7 @@ public class ChatClient extends AbstractClient
     @Override
     protected void connectionException(Exception exception) {
         clientUI.display("The server has shut down (connection lost).");
-        System.exit(0);
+        quit();
     }
 
 }

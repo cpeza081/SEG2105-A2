@@ -6,6 +6,8 @@ package edu.seg2105.edu.server.backend;
 
 import ocsf.server.*;
 
+import java.util.Objects;
+
 /**
  * This class overrides some of the methods in the abstract 
  * superclass in order to give more functionality to the server.
@@ -71,6 +73,22 @@ public class EchoServer extends AbstractServer
     System.out.println
       ("Server has stopped listening for connections.");
   }
+    @Override
+    protected void clientConnected(ConnectionToClient client) {
+        System.out.println("A client has connected: " + client);
+    }
+
+    @Override
+    synchronized protected void clientDisconnected(ConnectionToClient client) {
+        super.clientDisconnected(client);  // keep OCSF’s internal cleanup
+        System.out.println("A client has disconnected: " + Objects.requireNonNull(client.getInetAddress()).getHostAddress());
+    }
+
+    @Override
+    synchronized protected void clientException(ConnectionToClient client, Throwable exception) {
+        super.clientDisconnected(client);
+        System.out.println("A client's connection was lost");
+    }
   
   
   //Class methods ***************************************************
