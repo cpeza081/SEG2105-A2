@@ -4,8 +4,10 @@ package edu.seg2105.edu.server.backend;
 // license found at www.lloseng.com 
 
 
+import edu.seg2105.client.common.ChatIF;
 import ocsf.server.*;
 
+import java.io.IOException;
 import java.util.Objects;
 
 /**
@@ -17,112 +19,148 @@ import java.util.Objects;
  * @author Fran&ccedil;ois B&eacute;langer
  * @author Paul Holden
  */
-public class EchoServer extends AbstractServer 
-{
-  //Class variables *************************************************
-  
-  /**
-   * The default port to listen on.
-   */
-  final public static int DEFAULT_PORT = 5555;
-  
-  //Constructors ****************************************************
-  
-  /**
-   * Constructs an instance of the echo server.
-   *
-   * @param port The port number to connect on.
-   */
-  public EchoServer(int port) 
-  {
-    super(port);
-  }
+public class EchoServer extends AbstractServer {
+    //Class variables *************************************************
 
-  
-  //Instance methods ************************************************
-  
-  /**
-   * This method handles any messages received from the client.
-   *
-   * @param msg The message received from the client.
-   * @param client The connection from which the message originated.
-   */
-  public void handleMessageFromClient
-    (Object msg, ConnectionToClient client)
-  {
-    System.out.println("Message received: " + msg + " from " + client);
-    this.sendToAllClients(msg);
-  }
-    
-  /**
-   * This method overrides the one in the superclass.  Called
-   * when the server starts listening for connections.
-   */
-  protected void serverStarted()
-  {
-    System.out.println
-      ("Server listening for connections on port " + getPort());
-  }
-  
-  /**
-   * This method overrides the one in the superclass.  Called
-   * when the server stops listening for connections.
-   */
-  protected void serverStopped()
-  {
-    System.out.println
-      ("Server has stopped listening for connections.");
-  }
+    /**
+     * The default port to listen on.
+     */
+    final public static int DEFAULT_PORT = 5555;
+
+    private ChatIF serverUI;
+
+    //Constructors ****************************************************
+
+    /**
+     * Constructs an instance of the echo server.
+     *
+     * @param port The port number to connect on.
+     */
+    public EchoServer(int port, ChatIF serverUI) {
+        super(port);
+        this.serverUI = serverUI;
+    }
+
+
+    //Instance methods ************************************************
+
+    /**
+     * This method handles any messages received from the client.
+     *
+     * @param msg    The message received from the client.
+     * @param client The connection from which the message originated.
+     */
+    public void handleMessageFromClient
+    (Object msg, ConnectionToClient client) {
+        serverUI.display("Message received: " + msg + " from " + client);
+        this.sendToAllClients(msg);
+    }
+
+    /**
+     * This method overrides the one in the superclass.  Called
+     * when the server starts listening for connections.
+     */
+    protected void serverStarted() {
+        serverUI.display("Server listening for connections on port " + getPort());
+    }
+
+    /**
+     * This method overrides the one in the superclass.  Called
+     * when the server stops listening for connections.
+     */
+    protected void serverStopped() {
+        serverUI.display("Server has stopped listening for connections.");
+    }
+
     @Override
     protected void clientConnected(ConnectionToClient client) {
-        System.out.println("A client has connected: " + client);
+        serverUI.display("A client has connected: " + client);
     }
 
     @Override
     synchronized protected void clientDisconnected(ConnectionToClient client) {
         super.clientDisconnected(client);  // keep OCSF’s internal cleanup
-        System.out.println("A client has disconnected: " + Objects.requireNonNull(client.getInetAddress()).getHostAddress());
+        serverUI.display("A client has disconnected: " + Objects.requireNonNull(client.getInetAddress()).getHostAddress());
     }
 
     @Override
     synchronized protected void clientException(ConnectionToClient client, Throwable exception) {
         super.clientDisconnected(client);
-        System.out.println("A client's connection was lost");
+        serverUI.display("A client's connection was lost");
     }
-  
-  
-  //Class methods ***************************************************
-  
-  /**
-   * This method is responsible for the creation of 
-   * the server instance (there is no UI in this phase).
-   *
-   * @param args[0] The port number to listen on.  Defaults to 5555 
-   *          if no argument is entered.
-   */
-  public static void main(String[] args) 
-  {
-    int port = 0; //Port to listen on
 
-    try
-    {
-      port = Integer.parseInt(args[0]); //Get port from command line
+    public void handleMessageFromServerUI(String message) {
+        if (message.startsWith("#")) {
+            handleCommand(message);
+        } else {
+            String serverMessage = message;
+            serverUI.display(serverMessage);
+        }
     }
-    catch(Throwable t)
-    {
-      port = DEFAULT_PORT; //Set port to 5555
+
+    private void handleCommand(String message) {
+        String[] tokens = message.split(" ");
+        String command = tokens[0].toLowerCase();
+
+        switch (command) {
+            case "#quit":
+                try {
+                    serverUI.display("Server quitting...");
+                    close();
+                    System.exit(0);
+                } catch (IOException e) {
+                    serverUI.display("Error: Server could not quit.");
+                }
+                break;
+
+            case "#stop":
+                stopListening();
+                serverUI.display("Server stopping...");
+                break;
+
+            case "#close":
+                try {
+                    serverUI.display("Server closing...");
+                    close();
+                } catch (IOException e) {
+                    serverUI.display("Error: server failed to close.");
+                }
+                break;
+
+            case "#setport":
+                if (isListening()) {
+                    serverUI.display("Error: Stop the server before setting the port.");
+                } else if (tokens.length < 2) {
+                    serverUI.display("Usage: #setport <port>");
+                } else {
+                    int port = Integer.parseInt(tokens[1]);
+                    setPort(port);
+                    serverUI.display("Port set to " + port);
+                }
+                break;
+
+            case "#start":
+                if (isListening()) {
+                    serverUI.display("Error: Server already running.");
+                } else {
+                    try {
+
+                        listen();
+                        serverUI.display("Server started on port " + getPort());
+                    } catch (IOException e) {
+                        serverUI.display("Error: Server could not be started.");
+                    }
+                }
+                break;
+
+            case "#getport":
+                serverUI.display("Server port: " + getPort());
+                break;
+
+            default:
+                serverUI.display("Unknown command: " + command);
+                break;
+        }
     }
-	
-    EchoServer sv = new EchoServer(port);
-    
-    try 
-    {
-      sv.listen(); //Start listening for connections
-    } 
-    catch (Exception ex) 
-    {
-      System.out.println("ERROR - Could not listen for clients!");
-    }
-  }
 }
 //End of EchoServer class
