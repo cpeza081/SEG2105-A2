@@ -71,7 +71,11 @@ public class ChatClient extends AbstractClient
   {
     try
     {
-      sendToServer(message);
+        if(message.startsWith("#")){
+            handleCommand(message);
+        }else {
+            sendToServer(message);
+        }
     }
     catch(IOException e)
     {
@@ -80,11 +84,83 @@ public class ChatClient extends AbstractClient
       quit();
     }
   }
-  
-  /**
-   * This method terminates the client.
-   */
-  public void quit()
+
+  private void handleCommand(String message) {
+      String[] tokens =   message.split(" ");
+      String command = tokens[0].toLowerCase();
+
+      switch(command){
+          case "#quit":
+              quit();
+              break;
+
+          case "#logoff":
+              try {
+                  if (isConnected()) {
+                      closeConnection();
+                  }
+              }catch (IOException e){
+                  clientUI.display("Error: Client is not currently connected.");
+              }
+              break;
+
+          case "#sethost":
+              if (isConnected()) {
+                  clientUI.display("Error: Cannot change host while connected.");
+              } else if (tokens.length < 2) {
+                  clientUI.display("Usage: #sethost <host>");
+              } else {
+                  setHost(tokens[1]);
+                  clientUI.display("Host set to " + tokens[1]);
+              }
+              break;
+
+          case "#setport":
+              if (isConnected()) {
+                  clientUI.display("Error: Cannot change port while connected.");
+              } else if (tokens.length < 2) {
+                  clientUI.display("Usage: #setport <port>");
+              } else {
+                  try {
+                      int port = Integer.parseInt(tokens[1]);
+                      setPort(port);
+                      clientUI.display("Port set to " + port);
+                  } catch (NumberFormatException e) {
+                      clientUI.display("Error: Port must be a number.");
+                  }
+              }
+              break;
+
+          case "#login":
+              if (isConnected()) {
+                  clientUI.display("Error: Already connected to the server.");
+              } else {
+                  try {
+                      openConnection();
+                      clientUI.display("Logged in to the server.");
+                  }catch (IOException e){
+                      clientUI.display("Error connecting to the server: " + e.getMessage());
+                  }
+              }
+              break;
+
+          case "#gethost":
+              clientUI.display("Current host: " + getHost());
+              break;
+
+          case "#getport":
+              clientUI.display("Current port: " + getPort());
+              break;
+
+          default:
+              clientUI.display("Unknown command: " + command);
+              break;
+      }
+  }
+    /**
+     * This method terminates the client.
+     */
+    public void quit()
   {
     try
     {
@@ -100,8 +176,7 @@ public class ChatClient extends AbstractClient
      */
     @Override
     protected void connectionClosed() {
-        clientUI.display("The server has shut down.");
-        quit();  // closes the client
+        clientUI.display("Connection to server has been closed.");
     }
 
     /**
@@ -113,8 +188,7 @@ public class ChatClient extends AbstractClient
      */
     @Override
     protected void connectionException(Exception exception) {
-        clientUI.display("The server has shut down (connection lost).");
-        quit();
+        clientUI.display("The connection to server has been lost.");
     }
 
 }
