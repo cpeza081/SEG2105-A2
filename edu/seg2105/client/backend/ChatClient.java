@@ -140,7 +140,6 @@ public class ChatClient extends AbstractClient
               } else {
                   try {
                       openConnection();
-                      clientUI.display("Logged in to the server as "+loginID);
                   }catch (IOException e){
                       clientUI.display("Error connecting to the server: " + e.getMessage());
                   }

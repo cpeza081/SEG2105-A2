@@ -104,7 +104,7 @@ public class ClientConsole implements ChatIF
    */
   public void display(String message) 
   {
-    System.out.println("> " + message);
+    System.out.println(message);
   }
 
   
@@ -124,7 +124,7 @@ public class ClientConsole implements ChatIF
     try
     {
         if (args.length == 0){
-            System.out.println("Error: Missing arguments! Enter loginID, host name and port number. Quitting Application.");
+            System.out.println("ERROR - No login ID specified.  Connection aborted.");
             System.exit(1);
         }
         loginID = args[0];

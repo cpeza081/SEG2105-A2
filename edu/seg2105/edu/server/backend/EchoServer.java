@@ -53,6 +53,7 @@ public class EchoServer extends AbstractServer {
     public void handleMessageFromClient
     (Object msg, ConnectionToClient client) {
         String message = msg.toString().trim();
+        serverUI.display("Message received: " + msg + " from " + client.getInfo("loginID"));
 
         if(message.startsWith("#login")){
             String[] parts = message.split(" ");
@@ -100,8 +101,8 @@ public class EchoServer extends AbstractServer {
             }
             return;
         }
-        serverUI.display("Message received: " + msg + " from " + client);
-        this.sendToAllClients(loginID + ": " +msg);
+
+        this.sendToAllClients(client.getInfo("loginID").toString() +" > " +msg.toString());
     }
 
     /**
@@ -122,13 +123,13 @@ public class EchoServer extends AbstractServer {
 
     @Override
     protected void clientConnected(ConnectionToClient client) {
-        serverUI.display("A client has connected: " + client);
+        serverUI.display("A new client has connected to the server.");
     }
 
     @Override
     synchronized protected void clientDisconnected(ConnectionToClient client) {
+        serverUI.display(client.getInfo("loginID").toString() + " has disconnected.");
         super.clientDisconnected(client);  // keep OCSF’s internal cleanup
-        serverUI.display("A client has disconnected: " + Objects.requireNonNull(client.getInetAddress()).getHostAddress());
     }
 
     @Override
@@ -142,7 +143,7 @@ public class EchoServer extends AbstractServer {
             handleCommand(message);
         } else {
             String serverMessage = message;
-            serverUI.display(serverMessage);
+            serverUI.display("SERVER MESSAGE > "+serverMessage);
         }
     }
 
@@ -153,7 +154,6 @@ public class EchoServer extends AbstractServer {
         switch (command) {
             case "#quit":
                 try {
-                    serverUI.display("Server quitting...");
                     close();
                     System.exit(0);
                 } catch (IOException e) {
@@ -163,13 +163,12 @@ public class EchoServer extends AbstractServer {
 
             case "#stop":
                 stopListening();
-                serverUI.display("Server stopping...");
                 break;
 
             case "#close":
                 try {
-                    serverUI.display("Server closing...");
                     close();
+                    serverUI.display("The server has shut down.");
                 } catch (IOException e) {
                     serverUI.display("Error: server failed to close.");
                 }
@@ -192,9 +191,8 @@ public class EchoServer extends AbstractServer {
                     serverUI.display("Error: Server already running.");
                 } else {
                     try {
-
-                        listen();
                         serverUI.display("Server started on port " + getPort());
+                        listen();
                     } catch (IOException e) {
                         serverUI.display("Error: Server could not be started.");
                     }
