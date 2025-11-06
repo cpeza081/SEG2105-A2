@@ -52,8 +52,56 @@ public class EchoServer extends AbstractServer {
      */
     public void handleMessageFromClient
     (Object msg, ConnectionToClient client) {
+        String message = msg.toString().trim();
+
+        if(message.startsWith("#login")){
+            String[] parts = message.split(" ");
+
+            if(parts.length < 2){
+                try {
+                    client.sendToClient("ERROR: No login ID provided. Disconnecting client.");
+                    client.close();
+                }catch(IOException e){
+                    e.printStackTrace();
+                }
+                return;
+
+            }
+            String loginID = parts[1];
+
+            if(client.getInfo("loginID") != null){
+                try{
+                    client.sendToClient("ERROR: You are already logged in. Connection closing.");
+                    client.close();
+                }catch(IOException e){
+                    e.printStackTrace();
+                }
+                return;
+            }
+
+            client.setInfo("loginID", loginID);
+            serverUI.display("Client "+loginID+" logged in");
+            try{
+                client.sendToClient("Login successful. Welcome " +loginID+".");
+            }catch(IOException e){
+                e.printStackTrace();
+            }
+            return;
+
+        }
+
+        String loginID = (String) client.getInfo("loginID");
+        if(loginID == null){
+            try{
+                client.sendToClient("ERROR - You are not logged in. Disconnecting.");
+                client.close();
+            }catch(IOException e){
+                e.printStackTrace();
+            }
+            return;
+        }
         serverUI.display("Message received: " + msg + " from " + client);
-        this.sendToAllClients(msg);
+        this.sendToAllClients(loginID + ": " +msg);
     }
 
     /**
